@@ -1,11 +1,30 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Sparkles, Camera, LayoutDashboard, Calendar, Utensils, BarChart3, Bot, User, Bell } from 'lucide-react';
-import { getStoredProfile, getStoredReminders } from '@/lib/storage';
-import { UserProfile, SmartReminder } from '@/lib/types';
+import { usePathname, useRouter } from 'next/navigation';
+import {
+  Camera,
+  LayoutDashboard,
+  Calendar,
+  Utensils,
+  BarChart3,
+  Bot,
+  Bell,
+  User,
+  LogOut,
+  ChevronDown,
+  Users,
+  Settings,
+} from 'lucide-react';
+import {
+  getStoredProfile,
+  getStoredReminders,
+  getActiveAccount,
+  getAllAccounts,
+  setActiveAccount,
+} from '@/lib/storage';
+import { UserProfile, SmartReminder, UserAccount } from '@/lib/types';
 
 interface NavbarProps {
   onOpenAssistant?: () => void;
@@ -14,17 +33,31 @@ interface NavbarProps {
 
 export default function Navbar({ onOpenAssistant, onOpenReminders }: NavbarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [account, setAccount] = useState<UserAccount | null>(null);
+  const [allAccounts, setAllAccounts] = useState<UserAccount[]>([]);
   const [reminders, setReminders] = useState<SmartReminder[]>([]);
   const [activeRemindersCount, setActiveRemindersCount] = useState(0);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    setProfile(getStoredProfile());
+  const refreshUserData = () => {
+    const prof = getStoredProfile();
+    setProfile(prof);
+    const acc = getActiveAccount();
+    setAccount(acc);
+    setAllAccounts(getAllAccounts());
     const rems = getStoredReminders();
     setReminders(rems);
     setActiveRemindersCount(rems.filter((r) => r.enabled).length);
+  };
 
-    const handleProfileUpdate = () => setProfile(getStoredProfile());
+  useEffect(() => {
+    refreshUserData();
+
+    const handleProfileUpdate = () => refreshUserData();
+    const handleAuthChange = () => refreshUserData();
     const handleRemindersUpdate = () => {
       const updated = getStoredReminders();
       setReminders(updated);
@@ -32,12 +65,30 @@ export default function Navbar({ onOpenAssistant, onOpenReminders }: NavbarProps
     };
 
     window.addEventListener('nutritrack_profile_updated', handleProfileUpdate);
+    window.addEventListener('nutritrack_auth_changed', handleAuthChange);
     window.addEventListener('nutritrack_reminders_updated', handleRemindersUpdate);
+
+    // Close dropdown on outside click
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+
     return () => {
       window.removeEventListener('nutritrack_profile_updated', handleProfileUpdate);
+      window.removeEventListener('nutritrack_auth_changed', handleAuthChange);
       window.removeEventListener('nutritrack_reminders_updated', handleRemindersUpdate);
+      document.removeEventListener('mousedown', handleOutsideClick);
     };
   }, []);
+
+  const handleSwitchAccount = (accId: string) => {
+    setActiveAccount(accId);
+    setIsProfileMenuOpen(false);
+    router.push('/dashboard');
+  };
 
   const navLinks = [
     { label: 'Scanner', href: '/scanner', icon: Camera },
@@ -52,7 +103,7 @@ export default function Navbar({ onOpenAssistant, onOpenReminders }: NavbarProps
       <nav className="max-w-6xl mx-auto bg-white/95 backdrop-blur-md rounded-full px-5 py-2.5 shadow-sm border border-stone-200/70 flex items-center justify-between transition-all">
         {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+          <div className="w-8 h-8 rounded-full bg-[#00C27A] text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
             <svg
               className="w-4 h-4 fill-current"
               viewBox="0 0 24 24"
@@ -100,7 +151,7 @@ export default function Navbar({ onOpenAssistant, onOpenReminders }: NavbarProps
         </div>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 sm:gap-2.5">
           {/* Reminders Bell Button */}
           {onOpenReminders && (
             <button
@@ -115,15 +166,91 @@ export default function Navbar({ onOpenAssistant, onOpenReminders }: NavbarProps
             </button>
           )}
 
-          {/* Profile Quick Link */}
+          {/* User Profile Pill & Dropdown Menu */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+              className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-full border border-stone-200 hover:border-emerald-300 hover:bg-stone-50 transition-all text-left"
+            >
+              <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-bold shrink-0">
+                {account?.name ? account.name[0] : 'M'}
+              </div>
+              <span className="hidden sm:inline text-xs font-semibold text-stone-800 max-w-[80px] truncate">
+                {account?.name || 'Maya'}
+              </span>
+              <ChevronDown className="w-3.5 h-3.5 text-stone-400" />
+            </button>
+
+            {/* Dropdown Card */}
+            {isProfileMenuOpen && (
+              <div className="absolute right-0 mt-2 w-64 bg-white rounded-3xl shadow-xl border border-stone-200/90 py-3 z-50 animate-in fade-in">
+                {/* Account info */}
+                <div className="px-4 pb-3 border-b border-stone-100">
+                  <p className="text-xs font-bold text-stone-900 truncate">
+                    {account?.name || 'Maya'}
+                  </p>
+                  <p className="text-[11px] text-stone-500 truncate">{account?.email || 'maya@nutritrack.ai'}</p>
+                  <span className="inline-block mt-1 text-[10px] uppercase font-bold bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-full">
+                    {profile?.goal.replace('_', ' ')} • {profile?.dailyCalorieTarget} kcal
+                  </span>
+                </div>
+
+                {/* Switch Profiles Submenu */}
+                <div className="px-3 py-2 border-b border-stone-100">
+                  <p className="text-[10px] uppercase font-bold text-stone-400 px-2 mb-1.5 flex items-center gap-1">
+                    <Users className="w-3 h-3" />
+                    <span>Switch Profile</span>
+                  </p>
+                  <div className="space-y-1">
+                    {allAccounts.map((acc) => (
+                      <button
+                        key={acc.id}
+                        onClick={() => handleSwitchAccount(acc.id)}
+                        className={`w-full text-left px-2 py-1.5 rounded-xl text-xs flex items-center justify-between transition-colors ${
+                          acc.id === account?.id
+                            ? 'bg-emerald-50 text-emerald-900 font-bold'
+                            : 'text-stone-700 hover:bg-stone-50 font-medium'
+                        }`}
+                      >
+                        <span className="truncate">{acc.name}</span>
+                        {acc.id === account?.id && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Profile Links */}
+                <div className="p-1 space-y-0.5">
+                  <Link
+                    href="/profile"
+                    onClick={() => setIsProfileMenuOpen(false)}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors"
+                  >
+                    <Settings className="w-3.5 h-3.5 text-stone-400" />
+                    <span>My Profile & Target Calibration</span>
+                  </Link>
+
+                  <Link
+                    href="/login"
+                    onClick={() => setIsProfileMenuOpen(false)}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-emerald-700 hover:bg-emerald-50 flex items-center gap-2 transition-colors"
+                  >
+                    <User className="w-3.5 h-3.5" />
+                    <span>Create Individual Profile / Log in</span>
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Quick Log In link matching reference */}
           <Link
-            href="/profile"
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-stone-600 hover:text-stone-900 rounded-full hover:bg-stone-100 transition-colors"
+            href="/login"
+            className="hidden md:inline-block text-xs font-semibold text-stone-600 hover:text-stone-900 px-3 py-1.5 rounded-full hover:bg-stone-100 transition-colors"
           >
-            <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">
-              {profile?.name ? profile.name[0] : 'M'}
-            </div>
-            <span>{profile?.name || 'Maya'}</span>
+            Log in
           </Link>
 
           {/* Primary CTA button as shown in reference */}

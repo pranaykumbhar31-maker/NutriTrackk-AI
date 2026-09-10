@@ -199,3 +199,20 @@ export interface ChatMessage {
   timestamp: string;
   actionSuggestions?: string[];
 }
+
+export interface UserAccount {
+  id: string;
+  email: string;
+  name: string;
+  password?: string;
+  avatarUrl?: string;
+  createdAt: string;
+  profile: UserProfile;
+  meals: MealLog[];
+  weightLogs: WeightLog[];
+  water: WaterLog;
+  events: CalendarEvent[];
+  reminders: SmartReminder[];
+  exercises: ExerciseRecommendation[];
+}
+
