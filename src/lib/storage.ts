@@ -397,7 +397,69 @@ const DEFAULT_ACCOUNTS: UserAccount[] = [
 
 const isBrowser = typeof window !== 'undefined';
 
-// --- Multi-User Account Management ---
+// --- Multi-User Account Management & Backend Persistence Sync ---
+
+export function syncActiveAccountToBackend(): void {
+  if (!isBrowser) return;
+  try {
+    const acc = getActiveAccount();
+    if (!acc || acc.id === 'guest') return;
+    fetch('/api/user/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: acc.id,
+        payload: {
+          profile: acc.profile,
+          meals: acc.meals,
+          weightLogs: acc.weightLogs,
+          water: acc.water,
+          events: acc.events,
+          reminders: acc.reminders,
+        },
+      }),
+    }).catch((err) => console.warn('Background backend sync failed:', err));
+  } catch (err) {
+    console.warn('Sync error:', err);
+  }
+}
+
+export async function fetchBackendAccounts(): Promise<UserAccount[]> {
+  if (!isBrowser) return DEFAULT_ACCOUNTS;
+  try {
+    const res = await fetch('/api/auth/users');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.users)) {
+        const local = getAllAccounts();
+        const localMap = new Map(local.map((a) => [a.id, a]));
+        data.users.forEach((remoteUser: any) => {
+          if (!localMap.has(remoteUser.id)) {
+            localMap.set(remoteUser.id, {
+              id: remoteUser.id,
+              name: remoteUser.name,
+              email: remoteUser.email,
+              createdAt: remoteUser.createdAt,
+              profile: remoteUser.profile,
+              meals: [],
+              weightLogs: [],
+              water: { date: new Date().toISOString().split('T')[0], cups: 0, targetCups: 8 },
+              events: DEFAULT_CALENDAR_EVENTS,
+              reminders: DEFAULT_REMINDERS,
+              exercises: DEFAULT_EXERCISES,
+            });
+          }
+        });
+        const merged = Array.from(localMap.values());
+        saveAllAccounts(merged);
+        return merged;
+      }
+    }
+  } catch (e) {
+    console.warn('Backend accounts fetch failed:', e);
+  }
+  return getAllAccounts();
+}
 
 export function getAllAccounts(): UserAccount[] {
   if (!isBrowser) return DEFAULT_ACCOUNTS;
@@ -463,7 +525,7 @@ export function updateActiveAccount(updater: (account: UserAccount) => UserAccou
   saveAllAccounts(updatedAccounts);
 }
 
-// User Registration
+// User Registration with both local persistence and backend database save
 export function registerNewUser(
   email: string,
   name: string,
@@ -517,23 +579,69 @@ export function registerNewUser(
   const updated = [...accounts, newAccount];
   saveAllAccounts(updated);
   setActiveAccount(newId);
+
+  // Note profile to backend database asynchronously
+  fetch('/api/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: newAccount.email,
+      name: newAccount.name,
+      password: newAccount.password,
+      profile: newAccount.profile,
+    }),
+  }).catch((err) => console.warn('Backend registration failed:', err));
+
   return { success: true, account: newAccount };
 }
 
-// User Sign In
+// User Sign In with fallback to server database if not found locally
 export function loginUser(email: string, password?: string): { success: boolean; account?: UserAccount; error?: string } {
   const accounts = getAllAccounts();
-  const match = accounts.find((a) => a.email.toLowerCase() === email.toLowerCase().trim());
-  if (!match) {
-    return { success: false, error: 'No account found with this email. Please check or sign up.' };
+  const cleanEmail = email.toLowerCase().trim();
+  const match = accounts.find((a) => a.email.toLowerCase() === cleanEmail);
+
+  if (match) {
+    if (password && match.password && match.password !== password) {
+      return { success: false, error: 'Incorrect password.' };
+    }
+    setActiveAccount(match.id);
+    syncActiveAccountToBackend();
+    return { success: true, account: match };
   }
 
-  if (password && match.password && match.password !== password) {
-    return { success: false, error: 'Incorrect password.' };
-  }
+  // If not in local storage, attempt server check in background / async
+  loginUserFromServer(email, password).catch((err) => console.warn('Server login error:', err));
+  return { success: false, error: 'No account found with this email. Please check credentials or sign up.' };
+}
 
-  setActiveAccount(match.id);
-  return { success: true, account: match };
+// Async Login from Backend
+export async function loginUserFromServer(
+  email: string,
+  password?: string
+): Promise<{ success: boolean; account?: UserAccount; error?: string }> {
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (data.success && data.account) {
+      const accounts = getAllAccounts();
+      const existing = accounts.find((a) => a.id === data.account.id);
+      if (!existing) {
+        accounts.push(data.account);
+        saveAllAccounts(accounts);
+      }
+      setActiveAccount(data.account.id);
+      return { success: true, account: data.account };
+    }
+    return { success: false, error: data.error || 'Server login failed' };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Server error';
+    return { success: false, error: msg };
+  }
 }
 
 // User Log Out
@@ -552,6 +660,7 @@ export function getStoredProfile(): UserProfile {
 export function saveStoredProfile(profile: UserProfile): void {
   updateActiveAccount((acc) => ({ ...acc, profile, name: profile.name }));
   notifyAllUpdated();
+  syncActiveAccountToBackend();
 }
 
 export function getStoredMeals(): MealLog[] {
@@ -563,6 +672,7 @@ export function getStoredMeals(): MealLog[] {
 export function saveStoredMeals(meals: MealLog[]): void {
   updateActiveAccount((acc) => ({ ...acc, meals }));
   notifyAllUpdated();
+  syncActiveAccountToBackend();
 }
 
 export function addMealLog(meal: MealLog): void {
@@ -586,6 +696,7 @@ export function getStoredEvents(): CalendarEvent[] {
 export function saveStoredEvents(events: CalendarEvent[]): void {
   updateActiveAccount((acc) => ({ ...acc, events }));
   notifyAllUpdated();
+  syncActiveAccountToBackend();
 }
 
 export function addCalendarEvent(event: CalendarEvent): void {
@@ -609,6 +720,7 @@ export function getStoredWeightLogs(): WeightLog[] {
 export function saveStoredWeightLogs(logs: WeightLog[]): void {
   updateActiveAccount((acc) => ({ ...acc, weightLogs: logs }));
   notifyAllUpdated();
+  syncActiveAccountToBackend();
 }
 
 export function getStoredWater(): WaterLog {
@@ -625,6 +737,7 @@ export function getStoredWater(): WaterLog {
 export function saveStoredWater(log: WaterLog): void {
   updateActiveAccount((acc) => ({ ...acc, water: log }));
   notifyAllUpdated();
+  syncActiveAccountToBackend();
 }
 
 export function getStoredReminders(): SmartReminder[] {
@@ -636,6 +749,7 @@ export function getStoredReminders(): SmartReminder[] {
 export function saveStoredReminders(reminders: SmartReminder[]): void {
   updateActiveAccount((acc) => ({ ...acc, reminders }));
   notifyAllUpdated();
+  syncActiveAccountToBackend();
 }
 
 export function getStoredExercises(): ExerciseRecommendation[] {
@@ -647,4 +761,5 @@ export function getStoredExercises(): ExerciseRecommendation[] {
 export function saveStoredExercises(exercises: ExerciseRecommendation[]): void {
   updateActiveAccount((acc) => ({ ...acc, exercises }));
   notifyAllUpdated();
+  syncActiveAccountToBackend();
 }

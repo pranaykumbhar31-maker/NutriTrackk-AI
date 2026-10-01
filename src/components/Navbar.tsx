@@ -22,6 +22,7 @@ import {
   getStoredReminders,
   getActiveAccount,
   getAllAccounts,
+  fetchBackendAccounts,
   setActiveAccount,
 } from '@/lib/storage';
 import { UserProfile, SmartReminder, UserAccount } from '@/lib/types';
@@ -55,6 +56,7 @@ export default function Navbar({ onOpenAssistant, onOpenReminders }: NavbarProps
 
   useEffect(() => {
     refreshUserData();
+    fetchBackendAccounts().then(() => refreshUserData());
 
     const handleProfileUpdate = () => refreshUserData();
     const handleAuthChange = () => refreshUserData();

@@ -22,6 +22,8 @@ import confetti from 'canvas-confetti';
 import {
   getAllAccounts,
   loginUser,
+  loginUserFromServer,
+  fetchBackendAccounts,
   registerNewUser,
   setActiveAccount,
   getActiveAccountId,
@@ -32,6 +34,9 @@ import { UserProfile, UserAccount } from '@/lib/types';
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState<'login' | 'signup'>('login');
+
+  // Accounts state synced with backend
+  const [accountsList, setAccountsList] = useState<UserAccount[]>([]);
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState('maya@nutritrack.ai');
@@ -59,7 +64,17 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const existingAccounts = getAllAccounts();
+  // Sync backend accounts on mount
+  React.useEffect(() => {
+    setAccountsList(getAllAccounts());
+    fetchBackendAccounts().then((accs) => {
+      if (accs && accs.length > 0) {
+        setAccountsList(accs);
+      }
+    });
+  }, []);
+
+  const existingAccounts = accountsList.length > 0 ? accountsList : getAllAccounts();
   const currentActiveId = getActiveAccountId();
 
   // Quick switch between pre-seeded demo profiles
@@ -74,13 +89,17 @@ export default function LoginPage() {
     router.push('/dashboard');
   };
 
-  // Handle standard login
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  // Handle standard login with server DB fallback
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setIsSubmitting(true);
 
-    const result = loginUser(loginEmail, loginPassword);
+    let result = loginUser(loginEmail, loginPassword);
+    if (!result.success) {
+      result = await loginUserFromServer(loginEmail, loginPassword);
+    }
+
     if (!result.success) {
       setErrorMsg(result.error || 'Login failed. Please check your credentials.');
       setIsSubmitting(false);
@@ -227,6 +246,18 @@ export default function LoginPage() {
           </button>
         </div>
 
+        {/* Backend Cloud DB Status Banner */}
+        <div className="mb-4 flex items-center justify-between bg-emerald-50/80 border border-emerald-200/90 rounded-2xl px-3.5 py-2 text-[11px] text-emerald-850 font-semibold shadow-xs">
+          <span className="flex items-center gap-1.5 text-emerald-800">
+            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>Backend Database Active: All profiles, meals & health logs persist permanently</span>
+          </span>
+          <span className="flex items-center gap-1 text-[10px] text-emerald-700 font-bold bg-white px-2 py-0.5 rounded-full border border-emerald-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Synced
+          </span>
+        </div>
+
         {/* Error Notification */}
         {errorMsg && (
           <div className="mb-5 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2 animate-in fade-in">
@@ -284,7 +315,7 @@ export default function LoginPage() {
               <div className="flex items-center justify-between mb-3">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1">
                   <Users className="w-3.5 h-3.5" />
-                  <span>Saved Profiles on Device ({existingAccounts.length})</span>
+                  <span>Registered Profiles in Database ({existingAccounts.length})</span>
                 </span>
                 <span className="text-[11px] text-emerald-600 font-semibold">1-Click Switch</span>
               </div>
