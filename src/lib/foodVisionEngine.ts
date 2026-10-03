@@ -333,7 +333,7 @@ export async function classifyVisualFoodPlate(
     const matched = searchFoodDatabase(contextHint);
     if (matched.length > 0) {
       const selected = matched.slice(0, 3);
-      const inputs = selected.map((f) => ({ name: f.name, quantityGrams: f.servingSize || 100 }));
+      const inputs = selected.map((f) => ({ name: f.name, quantityGrams: getFoodItemBaseGrams(f) }));
       const calibrated = calibrateNutritionAccurate(inputs);
       return {
         success: true,
