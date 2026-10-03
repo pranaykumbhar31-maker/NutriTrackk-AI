@@ -75,6 +75,26 @@ export function containsFoodKeyword(text: string): boolean {
   });
 }
 
+export function getFoodItemBaseGrams(food: FoodItem): number {
+  if (food.servingUnit === 'g' || food.servingUnit === 'ml') {
+    return food.servingSize || 100;
+  }
+  const match = food.servingUnit.match(/(\d+)\s*g/i);
+  if (match) {
+    return parseInt(match[1], 10);
+  }
+  if (food.servingUnit.toLowerCase().includes('egg')) {
+    return (food.servingSize || 1) * 50;
+  }
+  if (food.servingUnit.toLowerCase().includes('cup')) {
+    return 150;
+  }
+  if (food.servingUnit.toLowerCase().includes('slice') || food.servingUnit.toLowerCase().includes('piece')) {
+    return 80;
+  }
+  return food.servingSize && food.servingSize > 10 ? food.servingSize : 100;
+}
+
 /**
  * Calibrates nutrients using exact Atwater specific factors
  * Calories = (Protein * 4) + (Carbohydrates * 4) + (Fats * 9)
@@ -95,8 +115,8 @@ export function calibrateNutritionAccurate(items: { name: string; quantityGrams:
   const calibratedItems = items.map((input) => {
     const matchedList = searchFoodDatabase(input.name);
     const matched = matchedList[0] || VERIFIED_FOOD_DATABASE[0];
-    const baseServing = matched.servingSize || 100;
-    const multiplier = Math.max(0.1, input.quantityGrams / baseServing);
+    const baseServingGrams = getFoodItemBaseGrams(matched);
+    const multiplier = Math.max(0.1, input.quantityGrams / baseServingGrams);
 
     const protein = Math.round(matched.protein * multiplier * 10) / 10;
     const carbs = Math.round(matched.carbs * multiplier * 10) / 10;
