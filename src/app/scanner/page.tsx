@@ -174,6 +174,9 @@ export default function ScannerPage() {
   const [selectedImage, setSelectedImage] = useState<string | null>(
     'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&auto=format&fit=crop&q=80'
   );
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState<string>('');
+  const [dishQuery, setDishQuery] = useState<string>('');
   const [isScanning, setIsScanning] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -274,13 +277,17 @@ export default function ScannerPage() {
     if (!file) return;
 
     const fileName = file.name;
+    setUploadedFileName(fileName);
+    setSelectedPresetId(null); // Clear preset ID completely for uploaded photos!
+
     const reader = new FileReader();
     reader.onload = () => {
       const base64 = reader.result as string;
       setSelectedImage(base64);
-      runAiScan(base64, undefined, fileName);
+      runAiScan(base64, null, fileName, dishQuery);
     };
     reader.readAsDataURL(file);
+    e.target.value = ''; // Reset file input so selecting the same or new file triggers onChange!
   };
 
   // Handle live camera capture
@@ -307,8 +314,10 @@ export default function ScannerPage() {
       ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
       setSelectedImage(dataUrl);
+      setSelectedPresetId(null);
+      setUploadedFileName('camera_snapshot.jpg');
       stopCamera();
-      runAiScan(dataUrl);
+      runAiScan(dataUrl, null, 'camera_snapshot.jpg', dishQuery);
     }
   };
 
@@ -323,7 +332,7 @@ export default function ScannerPage() {
   // Run AI Scan with Strict Food Validation & Filename inspection
   const runAiScan = async (
     imgBase64?: string,
-    sampleId?: string,
+    sampleId?: string | null,
     fileName?: string,
     userDishQuery?: string
   ) => {
@@ -333,7 +342,8 @@ export default function ScannerPage() {
     setRejectionReason('');
 
     const targetImage = imgBase64 || selectedImage;
-    const effectiveSampleId = sampleId || SAMPLE_PRESETS.find((p) => p.image === targetImage)?.id;
+    // Only use sampleId if explicitly passed and not null
+    const effectiveSampleId = sampleId === null ? undefined : (sampleId || selectedPresetId || undefined);
 
     try {
       let clientFeatures: any = undefined;
@@ -350,8 +360,8 @@ export default function ScannerPage() {
           imageBase64: targetImage,
           sampleDishId: effectiveSampleId,
           customApiKey: customApiKey || undefined,
-          fileName: fileName || undefined,
-          userDescription: userDishQuery || undefined,
+          fileName: fileName || uploadedFileName || undefined,
+          userDescription: userDishQuery !== undefined ? userDishQuery : (dishQuery || undefined),
           clientFeatures,
         }),
       });
@@ -625,7 +635,7 @@ export default function ScannerPage() {
                   </div>
 
                   <button
-                    onClick={() => runAiScan(selectedImage || undefined)}
+                    onClick={() => runAiScan(selectedImage || undefined, selectedPresetId, uploadedFileName, dishQuery)}
                     disabled={isScanning}
                     className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3.5 py-2 rounded-full transition-colors"
                   >
@@ -634,6 +644,80 @@ export default function ScannerPage() {
                   </button>
                 </>
               )}
+            </div>
+          </div>
+
+          {/* Interactive Dish Name / Note Refinement Bar */}
+          <div className="bg-white rounded-3xl p-5 border border-stone-200/80 shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
+                <Utensils className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Specify / Refine Dish Name</span>
+              </label>
+              <span className="text-[11px] text-stone-400">Optional text hint</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={dishQuery}
+                  onChange={(e) => setDishQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      runAiScan(selectedImage || undefined, null, uploadedFileName, dishQuery);
+                    }
+                  }}
+                  placeholder="e.g. Chicken Biryani, Veggie Pizza, Caesar Salad, Masala Dosa, Apple..."
+                  className="w-full px-4 py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs sm:text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+                />
+                {dishQuery && (
+                  <button
+                    onClick={() => {
+                      setDishQuery('');
+                      runAiScan(selectedImage || undefined, null, uploadedFileName, '');
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              <button
+                onClick={() => runAiScan(selectedImage || undefined, null, uploadedFileName, dishQuery)}
+                disabled={isScanning}
+                className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2.5 rounded-2xl text-xs sm:text-sm shadow-sm transition-colors shrink-0"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isScanning ? 'animate-spin' : ''}`} />
+                <span>Re-analyze</span>
+              </button>
+            </div>
+
+            {/* Quick Suggestion Chips */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-[11px] font-medium text-stone-400 mr-1">Quick chips:</span>
+              {[
+                { label: '🍛 Curry & Rice', query: 'Indian Spiced Curry with Basmati Rice' },
+                { label: '🍕 Pizza', query: 'Stone-Oven Veggie Margherita Pizza' },
+                { label: '🥗 Salad', query: 'Mediterranean Rainbow Power Salad Bowl' },
+                { label: '🥑 Avocado Toast', query: 'Artisan Avocado Toast & Poached Egg' },
+                { label: '🍗 Grilled Chicken', query: 'Grilled Chicken Breast with Brown Rice' },
+                { label: '🍚 Biryani', query: 'Hyderabadi Dum Biryani with Raita' },
+                { label: '🍎 Fresh Apple', query: 'Fresh Red Apple' },
+                { label: '🥞 Dosa / Sambar', query: 'Crispy Masala Dosa with Sambar & Chutney' },
+              ].map((chip) => (
+                <button
+                  key={chip.label}
+                  onClick={() => {
+                    setDishQuery(chip.query);
+                    runAiScan(selectedImage || undefined, null, uploadedFileName, chip.query);
+                  }}
+                  className="px-2.5 py-1 rounded-full text-xs font-medium bg-stone-100 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 border border-transparent text-stone-600 transition-colors"
+                >
+                  {chip.label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -648,7 +732,10 @@ export default function ScannerPage() {
                   key={preset.id}
                   onClick={() => {
                     setSelectedImage(preset.image);
-                    runAiScan(preset.image, preset.id);
+                    setSelectedPresetId(preset.id);
+                    setUploadedFileName('');
+                    setDishQuery(preset.title);
+                    runAiScan(preset.image, preset.id, undefined, preset.title);
                   }}
                   className="flex items-center gap-2.5 p-2 rounded-2xl border border-stone-100 hover:border-emerald-300 hover:bg-emerald-50/40 text-left transition-all group"
                 >

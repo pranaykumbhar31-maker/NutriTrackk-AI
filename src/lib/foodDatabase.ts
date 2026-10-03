@@ -575,15 +575,198 @@ export const VERIFIED_FOOD_DATABASE: FoodItem[] = [
     potassium: 35,
     cuisine: 'Universal',
   },
+  {
+    id: 'f-apple-fresh',
+    name: 'Fresh Red Apple',
+    category: 'fruit',
+    servingSize: 1,
+    servingUnit: 'medium apple (182g)',
+    calories: 95,
+    protein: 0.5,
+    carbs: 25.1,
+    fats: 0.3,
+    fiber: 4.4,
+    sugar: 19.0,
+    potassium: 195,
+    cuisine: 'Universal',
+  },
+  {
+    id: 'f-banana-fresh',
+    name: 'Fresh Ripe Banana',
+    category: 'fruit',
+    servingSize: 1,
+    servingUnit: 'medium banana (118g)',
+    calories: 105,
+    protein: 1.3,
+    carbs: 27.0,
+    fats: 0.4,
+    fiber: 3.1,
+    sugar: 14.4,
+    potassium: 422,
+    cuisine: 'Universal',
+  },
+  {
+    id: 'f-orange-fresh',
+    name: 'Fresh Sweet Orange',
+    category: 'fruit',
+    servingSize: 1,
+    servingUnit: 'medium orange (131g)',
+    calories: 62,
+    protein: 1.2,
+    carbs: 15.4,
+    fats: 0.2,
+    fiber: 3.1,
+    sugar: 12.2,
+    potassium: 237,
+    cuisine: 'Universal',
+  },
+  {
+    id: 'f-pasta-penne',
+    name: 'Whole Grain Penne Pasta with Tomato Basil',
+    category: 'composite',
+    servingSize: 1,
+    servingUnit: 'bowl (220g)',
+    calories: 280,
+    protein: 10.0,
+    carbs: 54.0,
+    fats: 2.8,
+    fiber: 5.5,
+    sodium: 380,
+    potassium: 310,
+    cuisine: 'Italian',
+  },
+  {
+    id: 'f-masala-dosa',
+    name: 'Crispy Masala Dosa with Sambar & Chutney',
+    category: 'composite',
+    servingSize: 1,
+    servingUnit: 'serving (200g)',
+    calories: 340,
+    protein: 7.2,
+    carbs: 52.0,
+    fats: 11.5,
+    fiber: 4.0,
+    sodium: 460,
+    potassium: 280,
+    cuisine: 'Indian',
+  },
+  {
+    id: 'f-idli-sambar',
+    name: 'Steamed Rice Idli with Sambar (2 pieces)',
+    category: 'composite',
+    servingSize: 2,
+    servingUnit: 'pieces (150g)',
+    calories: 165,
+    protein: 5.2,
+    carbs: 33.0,
+    fats: 1.0,
+    fiber: 2.5,
+    sodium: 320,
+    potassium: 190,
+    cuisine: 'Indian',
+  },
+  {
+    id: 'f-burger-veggie',
+    name: 'Gourmet Veggie Burger with Avocado & Greens',
+    category: 'composite',
+    servingSize: 1,
+    servingUnit: 'burger (210g)',
+    calories: 380,
+    protein: 14.5,
+    carbs: 48.0,
+    fats: 14.5,
+    fiber: 6.5,
+    sodium: 520,
+    potassium: 340,
+    cuisine: 'Western',
+  },
+  {
+    id: 'f-fruit-salad',
+    name: 'Fresh Mixed Fruit Salad Bowl',
+    category: 'composite',
+    servingSize: 1,
+    servingUnit: 'bowl (220g)',
+    calories: 130,
+    protein: 1.8,
+    carbs: 32.0,
+    fats: 0.5,
+    fiber: 4.5,
+    sugar: 24.0,
+    potassium: 350,
+    cuisine: 'Universal',
+  },
+  {
+    id: 'f-coffee-latte',
+    name: 'Caffe Latte / Cappuccino with Milk',
+    category: 'beverage',
+    servingSize: 240,
+    servingUnit: 'cup (240ml)',
+    calories: 120,
+    protein: 6.0,
+    carbs: 10.0,
+    fats: 6.0,
+    calcium: 210,
+    potassium: 260,
+    cuisine: 'Universal',
+  },
+  {
+    id: 'f-protein-smoothie',
+    name: 'Berry Whey Protein Smoothie',
+    category: 'beverage',
+    servingSize: 300,
+    servingUnit: 'bottle (300ml)',
+    calories: 220,
+    protein: 25.0,
+    carbs: 22.0,
+    fats: 3.5,
+    fiber: 4.0,
+    potassium: 420,
+    cuisine: 'Universal',
+  },
 ];
 
 export function searchFoodDatabase(query: string): FoodItem[] {
   if (!query || query.trim() === '') return VERIFIED_FOOD_DATABASE.slice(0, 15);
-  const q = query.toLowerCase().trim();
+
+  // Clean query: strip file extensions, remove symbols, extract clean words
+  const clean = query
+    .toLowerCase()
+    .replace(/\.(png|jpg|jpeg|webp|gif|bmp|heic|svg|tiff)$/i, '')
+    .replace(/[^a-z0-9]/g, ' ')
+    .trim();
+
+  const words = clean
+    .split(/\s+/)
+    .filter((w) => w.length >= 2 && !['img', 'photo', 'image', 'picture', 'upload', 'shot'].includes(w));
+
+  // 1. Direct full-phrase match
+  const exactMatches = VERIFIED_FOOD_DATABASE.filter((item) =>
+    item.name.toLowerCase().includes(clean)
+  );
+  if (exactMatches.length > 0) return exactMatches;
+
+  // 2. Token-based ranked match
+  if (words.length > 0) {
+    const scored = VERIFIED_FOOD_DATABASE.map((item) => {
+      const target = `${item.name} ${item.category} ${item.cuisine || ''}`.toLowerCase();
+      let matchCount = 0;
+      for (const w of words) {
+        if (target.includes(w)) matchCount += item.name.toLowerCase().includes(w) ? 3 : 1;
+      }
+      return { item, matchCount };
+    }).filter((r) => r.matchCount > 0);
+
+    scored.sort((a, b) => b.matchCount - a.matchCount);
+    if (scored.length > 0) {
+      return scored.map((s) => s.item);
+    }
+  }
+
+  // 3. Fallback contains
   return VERIFIED_FOOD_DATABASE.filter(
     (item) =>
-      item.name.toLowerCase().includes(q) ||
-      item.category.toLowerCase().includes(q) ||
-      (item.cuisine && item.cuisine.toLowerCase().includes(q))
+      item.name.toLowerCase().includes(clean) ||
+      item.category.toLowerCase().includes(clean) ||
+      (item.cuisine && item.cuisine.toLowerCase().includes(clean))
   );
 }

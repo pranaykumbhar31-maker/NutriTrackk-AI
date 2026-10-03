@@ -366,56 +366,20 @@ export async function classifyVisualFoodPlate(
 
   // --- CONFIRMED EDIBLE FOOD ITEM! ---
   // Select matching verified plate based on dominant culinary distribution:
-  let plateTitle = 'Balanced Whole Food Plate';
+  let plateTitle = 'Mediterranean Rainbow Grain Bowl';
   let foodInputs: { name: string; quantityGrams: number }[] = [];
 
-  // Match 1: Curry + Rice + Naan (exact match for user's curry bowl!)
-  if ((curryPct > 0.05 && (ricePct > 0.06 || breadPct > 0.02)) || (curryPct > 0.12)) {
-    plateTitle = 'Indian Spiced Curry with Basmati Rice & Naan';
-    foodInputs = [
-      { name: 'Steamed White Basmati Rice', quantityGrams: 150 },
-      { name: 'Indian Spiced Chicken Tikka Masala / Curry', quantityGrams: 180 },
-      { name: 'Tandoori Garlic Naan / Flatbread', quantityGrams: 80 },
-      { name: 'Cherry Tomatoes & Radish', quantityGrams: 30 },
-    ];
-  }
-  // Match 2: Biryani / Spiced Rice Plate
-  else if (curryPct > 0.04 && ricePct > 0.15) {
-    plateTitle = 'Hyderabadi Dum Biryani with Raita';
-    foodInputs = [
-      { name: 'Hyderabadi Dum Biryani with Raita', quantityGrams: 320 },
-      { name: 'Cherry Tomatoes & Radish', quantityGrams: 40 },
-    ];
-  }
-  // Match 3: Dal & Rice Plate
-  else if (curryPct > 0.07 && ricePct > 0.08) {
-    plateTitle = 'Steamed Basmati Rice with Dal Tadka';
-    foodInputs = [
-      { name: 'Steamed White Basmati Rice', quantityGrams: 150 },
-      { name: 'Yellow Dal Tadka (Lentil Soup)', quantityGrams: 180 },
-      { name: 'Homestyle Palak Paneer', quantityGrams: 100 },
-    ];
-  }
-  // Match 4: Pizza / Italian Baked Dish
-  else if (fruitPct > 0.04 && breadPct > 0.04) {
-    plateTitle = 'Stone-Oven Veggie Margherita Pizza Plate';
-    foodInputs = [
-      { name: 'Stone-Oven Veggie Margherita Pizza', quantityGrams: 220 },
-      { name: 'Baby Spinach / Mixed Greens', quantityGrams: 50 },
-    ];
-  }
-  // Match 5: Toast & Eggs / Avocado
-  else if (breadPct > 0.07 && (ricePct > 0.04 || greenPct > 0.03 || proteinPct > 0.03)) {
-    plateTitle = 'Artisan Avocado Toast & Poached Egg Plate';
-    foodInputs = [
-      { name: 'Whole Grain Sourdough Toast', quantityGrams: 45 },
-      { name: 'Poached Egg', quantityGrams: 50 },
-      { name: 'Hass Avocado (Sliced)', quantityGrams: 50 },
-      { name: 'Fresh Blueberries & Strawberries', quantityGrams: 60 },
-    ];
-  }
-  // Match 6: Fresh Salad / Vegetable Power Bowl
-  else if (greenPct > 0.06) {
+  // Check which culinary profile is dominant
+  const isSalad = greenPct > 0.05 && greenPct >= curryPct * 0.8 && greenPct >= fruitPct;
+  const isFruit = fruitPct > 0.05 && fruitPct >= curryPct * 0.8 && fruitPct >= greenPct;
+  const isPizza = (fruitPct > 0.03 || curryPct > 0.04) && breadPct > 0.05 && !isSalad;
+  const isToastOrEgg = breadPct > 0.06 && (ricePct > 0.04 || greenPct > 0.03 || proteinPct > 0.03) && breadPct >= curryPct * 0.8;
+  const isProtein = proteinPct > 0.06 && proteinPct >= curryPct && proteinPct >= greenPct;
+  const isCurry = (curryPct > 0.08 && (ricePct > 0.06 || breadPct > 0.01)) || curryPct > 0.14;
+  const isBiryani = ricePct > 0.20 && curryPct > 0.04;
+  const isDal = curryPct > 0.07 && ricePct > 0.08;
+
+  if (isSalad) {
     plateTitle = 'Mediterranean Rainbow Power Salad Bowl';
     foodInputs = [
       { name: 'Baby Spinach / Mixed Greens', quantityGrams: 80 },
@@ -423,36 +387,62 @@ export async function classifyVisualFoodPlate(
       { name: 'Hass Avocado (Sliced)', quantityGrams: 50 },
       { name: 'Cherry Tomatoes & Radish', quantityGrams: 75 },
     ];
-  }
-  // Match 7: Seared Protein & Whole Grains
-  else if (proteinPct > 0.06) {
+  } else if (isFruit) {
+    plateTitle = 'Fresh Mixed Fruit Salad Bowl';
+    foodInputs = [
+      { name: 'Fresh Mixed Fruit Salad Bowl', quantityGrams: 220 },
+      { name: 'Plain Greek Yogurt (0% Fat)', quantityGrams: 100 },
+    ];
+  } else if (isPizza) {
+    plateTitle = 'Stone-Oven Veggie Margherita Pizza Plate';
+    foodInputs = [
+      { name: 'Stone-Oven Veggie Margherita Pizza', quantityGrams: 220 },
+      { name: 'Baby Spinach / Mixed Greens', quantityGrams: 50 },
+    ];
+  } else if (isToastOrEgg) {
+    plateTitle = 'Artisan Avocado Toast & Poached Egg Plate';
+    foodInputs = [
+      { name: 'Whole Grain Sourdough Toast', quantityGrams: 45 },
+      { name: 'Poached Egg', quantityGrams: 50 },
+      { name: 'Hass Avocado (Sliced)', quantityGrams: 50 },
+      { name: 'Fresh Blueberries & Strawberries', quantityGrams: 60 },
+    ];
+  } else if (isProtein) {
     plateTitle = 'Grilled Chicken Breast with Brown Rice & Greens';
     foodInputs = [
       { name: 'Grilled Chicken Breast', quantityGrams: 120 },
       { name: 'Steamed Brown Rice', quantityGrams: 150 },
       { name: 'Baby Spinach / Mixed Greens', quantityGrams: 60 },
     ];
-  }
-  // Match 8: Fruits & Greek Yogurt / Oats
-  else if (fruitPct > 0.05) {
-    plateTitle = 'Antioxidant Berry Greek Yogurt Bowl';
+  } else if (isCurry) {
+    plateTitle = 'Indian Spiced Curry with Basmati Rice & Naan';
     foodInputs = [
-      { name: 'Plain Greek Yogurt (0% Fat)', quantityGrams: 150 },
-      { name: 'Fresh Blueberries & Strawberries', quantityGrams: 100 },
-      { name: 'Rolled Oats with Almond Milk', quantityGrams: 100 },
+      { name: 'Steamed White Basmati Rice', quantityGrams: 150 },
+      { name: 'Indian Spiced Chicken Tikka Masala / Curry', quantityGrams: 180 },
+      { name: 'Tandoori Garlic Naan / Flatbread', quantityGrams: 80 },
+      { name: 'Cherry Tomatoes & Radish', quantityGrams: 30 },
     ];
-  }
-  // Match 9: Festive Sweets / Modak
-  else if (breadPct > 0.08 && fruitPct > 0.02) {
+  } else if (isBiryani) {
+    plateTitle = 'Hyderabadi Dum Biryani with Raita';
+    foodInputs = [
+      { name: 'Hyderabadi Dum Biryani with Raita', quantityGrams: 320 },
+      { name: 'Cherry Tomatoes & Radish', quantityGrams: 40 },
+    ];
+  } else if (isDal) {
+    plateTitle = 'Steamed Basmati Rice with Dal Tadka';
+    foodInputs = [
+      { name: 'Steamed White Basmati Rice', quantityGrams: 150 },
+      { name: 'Yellow Dal Tadka (Lentil Soup)', quantityGrams: 180 },
+      { name: 'Homestyle Palak Paneer', quantityGrams: 100 },
+    ];
+  } else if (breadPct > 0.08 && fruitPct > 0.02) {
     plateTitle = 'Festive Steamed Modak Thali';
     foodInputs = [
       { name: 'Steamed Ukadiche Modak (Ganesh Chaturthi special)', quantityGrams: 100 },
       { name: 'Cardamom Saffron Rice Kheer', quantityGrams: 120 },
       { name: 'Besan Ladoo (Desi Ghee)', quantityGrams: 45 },
     ];
-  }
-  // Match 10: General Balanced Meal Plate
-  else {
+  } else {
     plateTitle = 'Mediterranean Rainbow Grain Bowl';
     foodInputs = [
       { name: 'Cooked Quinoa', quantityGrams: 150 },
