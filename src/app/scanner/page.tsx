@@ -45,11 +45,19 @@ interface DetectedItemState {
 
 const SAMPLE_PRESETS = [
   {
+    id: 'f-curry-rice-naan-plate',
+    title: 'Indian Spiced Curry with Basmati Rice & Naan',
+    image: 'https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=800&auto=format&fit=crop&q=80',
+    calories: 649,
+    protein: 32.7,
+    tag: 'Curry, Basmati Rice, Garlic Naan',
+  },
+  {
     id: 'f-mediterranean-power-bowl',
     title: 'Mediterranean Rainbow Grain Bowl',
     image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&auto=format&fit=crop&q=80',
-    calories: 440,
-    protein: 16.5,
+    calories: 442,
+    protein: 16.7,
     tag: 'Quinoa, Chickpeas, Veggies',
   },
   {
@@ -61,14 +69,6 @@ const SAMPLE_PRESETS = [
     tag: 'Sourdough, Egg, Avocado',
   },
   {
-    id: 'f-modak-steamed',
-    title: 'Festive Steamed Modak Thali',
-    image: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=800&auto=format&fit=crop&q=80',
-    calories: 410,
-    protein: 8.5,
-    tag: 'Ganesh Chaturthi Festive Dish',
-  },
-  {
     id: 'f-salmon-grilled',
     title: 'Wild Salmon with Asparagus & Lemon',
     image: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800&auto=format&fit=crop&q=80',
@@ -76,7 +76,95 @@ const SAMPLE_PRESETS = [
     protein: 34.0,
     tag: 'Omega-3 Rich & Lean',
   },
+  {
+    id: 'f-modak-steamed',
+    title: 'Festive Steamed Modak Thali',
+    image: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=800&auto=format&fit=crop&q=80',
+    calories: 410,
+    protein: 8.5,
+    tag: 'Ganesh Chaturthi Festive Dish',
+  },
 ];
+
+async function extractClientImageFeatures(imageSrc: string): Promise<any> {
+  return new Promise((resolve) => {
+    try {
+      const img = new window.Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = 48;
+          canvas.height = 48;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return resolve(undefined);
+          ctx.drawImage(img, 0, 0, 48, 48);
+          const imgData = ctx.getImageData(0, 0, 48, 48);
+          const data = imgData.data;
+          let curryCount = 0;
+          let whiteRiceCount = 0;
+          let breadBakedCount = 0;
+          let greenHerbCount = 0;
+          let searedProteinCount = 0;
+          let fruitRedBerryCount = 0;
+          let docWhiteCount = 0;
+          let coldTechCount = 0;
+          const totalPixels = 48 * 48;
+
+          for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+
+            if (r > 130 && g > 65 && b < 125 && r > g * 1.04 && (r - b) > 40) curryCount++;
+            else if (r > 165 && g > 165 && b > 145 && Math.abs(r - g) < 35 && (r + g + b) > 500) whiteRiceCount++;
+            else if (r > 145 && g > 105 && b > 45 && r > g && g > b && (r - b) > 40) breadBakedCount++;
+            else if (g > r * 1.05 && g > b * 1.05 && g > 45) greenHerbCount++;
+            else if (r > 135 && g > 75 && b > 55 && r > b * 1.25) searedProteinCount++;
+            else if ((r > 160 && g < 80 && b < 80) || (b > 105 && r > 90 && g < 75)) fruitRedBerryCount++;
+
+            if (r > 245 && g > 245 && b > 245) docWhiteCount++;
+            else if (b > r * 1.35 && b > 75) coldTechCount++;
+          }
+
+          const curryPct = curryCount / totalPixels;
+          const ricePct = whiteRiceCount / totalPixels;
+          const breadPct = breadBakedCount / totalPixels;
+          const greenPct = greenHerbCount / totalPixels;
+          const proteinPct = searedProteinCount / totalPixels;
+          const fruitPct = fruitRedBerryCount / totalPixels;
+          const docPct = docWhiteCount / totalPixels;
+          const techPct = coldTechCount / totalPixels;
+          const foodScore =
+            curryPct * 1.4 +
+            ricePct * 1.0 +
+            breadPct * 1.2 +
+            greenPct * 1.5 +
+            proteinPct * 1.2 +
+            fruitPct * 1.3;
+
+          resolve({
+            curryPct,
+            ricePct,
+            breadPct,
+            greenPct,
+            proteinPct,
+            fruitPct,
+            docPct,
+            techPct,
+            foodScore,
+          });
+        } catch {
+          resolve(undefined);
+        }
+      };
+      img.onerror = () => resolve(undefined);
+      img.src = imageSrc;
+    } catch {
+      resolve(undefined);
+    }
+  });
+}
 
 export default function ScannerPage() {
   const router = useRouter();
@@ -244,16 +332,27 @@ export default function ScannerPage() {
     setIsNonFood(false);
     setRejectionReason('');
 
+    const targetImage = imgBase64 || selectedImage;
+    const effectiveSampleId = sampleId || SAMPLE_PRESETS.find((p) => p.image === targetImage)?.id;
+
     try {
+      let clientFeatures: any = undefined;
+      if (targetImage && !effectiveSampleId) {
+        try {
+          clientFeatures = await extractClientImageFeatures(targetImage);
+        } catch {}
+      }
+
       const res = await fetch('/api/scan-food', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageBase64: imgBase64 || selectedImage,
-          sampleDishId: sampleId,
+          imageBase64: targetImage,
+          sampleDishId: effectiveSampleId,
           customApiKey: customApiKey || undefined,
           fileName: fileName || undefined,
           userDescription: userDishQuery || undefined,
+          clientFeatures,
         }),
       });
       const data = await res.json();
@@ -526,7 +625,7 @@ export default function ScannerPage() {
                   </div>
 
                   <button
-                    onClick={() => runAiScan()}
+                    onClick={() => runAiScan(selectedImage || undefined)}
                     disabled={isScanning}
                     className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3.5 py-2 rounded-full transition-colors"
                   >
@@ -549,7 +648,7 @@ export default function ScannerPage() {
                   key={preset.id}
                   onClick={() => {
                     setSelectedImage(preset.image);
-                    runAiScan(undefined, preset.id);
+                    runAiScan(preset.image, preset.id);
                   }}
                   className="flex items-center gap-2.5 p-2 rounded-2xl border border-stone-100 hover:border-emerald-300 hover:bg-emerald-50/40 text-left transition-all group"
                 >
