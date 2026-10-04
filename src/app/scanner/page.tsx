@@ -82,7 +82,7 @@ const SAMPLE_PRESETS = [
     image: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=800&auto=format&fit=crop&q=80',
     calories: 410,
     protein: 8.5,
-    tag: 'Ganesh Chaturthi Festive Dish',
+    tag: 'Traditional Festive Sweet',
   },
 ];
 

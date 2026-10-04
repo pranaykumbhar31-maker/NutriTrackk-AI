@@ -215,7 +215,7 @@ export const DEFAULT_REMINDERS: SmartReminder[] = [
     title: 'Festival Preparation Reminder',
     time: '10:00',
     enabled: true,
-    message: 'Ganesh Chaturthi is tomorrow! Check your pre-event balance plan.',
+    message: 'Navratri & Diwali festive season is approaching! Check your pre-event balance plan.',
   },
 ];
 
@@ -690,7 +690,10 @@ export function deleteMealLog(mealId: string): void {
 export function getStoredEvents(): CalendarEvent[] {
   if (!isBrowser) return DEFAULT_CALENDAR_EVENTS;
   const account = getActiveAccount();
-  return account.events && account.events.length > 0 ? account.events : DEFAULT_CALENDAR_EVENTS;
+  const rawEvents = account.events && account.events.length > 0 ? account.events : DEFAULT_CALENDAR_EVENTS;
+  // Automatically remove expired Ganesh Chaturthi event
+  const filtered = rawEvents.filter((e) => e.id !== 'evt-ganesh-chaturthi' && !e.title.toLowerCase().includes('ganesh'));
+  return filtered.length > 0 ? filtered : DEFAULT_CALENDAR_EVENTS;
 }
 
 export function saveStoredEvents(events: CalendarEvent[]): void {

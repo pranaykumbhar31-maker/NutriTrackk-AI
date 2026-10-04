@@ -45,7 +45,7 @@ import MacroSplitBar from '@/components/MacroSplitBar';
 
 export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [selectedEventId, setSelectedEventId] = useState<string>('evt-ganesh-chaturthi');
+  const [selectedEventId, setSelectedEventId] = useState<string>('evt-navratri-garba');
   const [activePhase, setActivePhase] = useState<'before' | 'during' | 'after'>('before');
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [meals, setMeals] = useState<MealLog[]>([]);
@@ -58,11 +58,11 @@ export default function CalendarPage() {
   // New Event Form State
   const [newEventTitle, setNewEventTitle] = useState('');
   const [newEventType, setNewEventType] = useState<EventType>('festival');
-  const [newEventDate, setNewEventDate] = useState('2026-09-15');
+  const [newEventDate, setNewEventDate] = useState('2026-10-15');
   const [newEventDesc, setNewEventDesc] = useState('');
 
   // Selected Day in Calendar
-  const [selectedDay, setSelectedDay] = useState<number>(11); // Sept 11 (Ganesh Chaturthi)
+  const [selectedDay, setSelectedDay] = useState<number>(10); // Oct 10 (Navratri Garba)
 
   useEffect(() => {
     const evts = getStoredEvents();
@@ -123,8 +123,8 @@ export default function CalendarPage() {
     });
   };
 
-  // Calendar Days representation (September 2026)
-  const daysInMonth = Array.from({ length: 30 }, (_, i) => i + 1);
+  // Calendar Days representation (October 2026)
+  const daysInMonth = Array.from({ length: 31 }, (_, i) => i + 1);
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
@@ -159,7 +159,7 @@ export default function CalendarPage() {
           <div className="flex items-center justify-between pb-3 border-b border-stone-100">
             <div className="flex items-center gap-2">
               <CalendarIcon className="w-5 h-5 text-emerald-600" />
-              <h2 className="font-extrabold text-stone-900 text-lg">September 2026</h2>
+              <h2 className="font-extrabold text-stone-900 text-lg">October 2026</h2>
             </div>
             <div className="flex items-center gap-1 text-stone-400">
               <button className="p-1.5 hover:bg-stone-100 rounded-full text-stone-600">
@@ -184,15 +184,17 @@ export default function CalendarPage() {
 
           {/* Day Cells */}
           <div className="grid grid-cols-7 gap-1.5 text-center">
-            {/* Empty offset for Sept 1, 2026 (Tuesday = 2 offset) */}
+            {/* Empty offset for Oct 1, 2026 (Thursday = 4 offset cells) */}
+            <div className="h-12" />
+            <div className="h-12" />
             <div className="h-12" />
             <div className="h-12" />
 
             {daysInMonth.map((day) => {
-              const dateStr = `2026-09-${day < 10 ? `0${day}` : day}`;
+              const dateStr = `2026-10-${day < 10 ? `0${day}` : day}`;
               const eventOnDay = events.find((e) => e.date === dateStr);
               const isSelected = selectedDay === day;
-              const isToday = day === 10;
+              const isToday = day === 4;
 
               return (
                 <button
@@ -219,8 +221,8 @@ export default function CalendarPage() {
                       }`}
                       title={eventOnDay.title}
                     />
-                  ) : day <= 10 ? (
-                    <span className="text-[9px] text-stone-400 font-medium">1.5k</span>
+                  ) : day <= 4 ? (
+                    <span className="text-[9px] text-stone-400 font-medium">1.8k</span>
                   ) : null}
                 </button>
               );

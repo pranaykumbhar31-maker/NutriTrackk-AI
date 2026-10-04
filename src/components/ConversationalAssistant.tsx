@@ -167,7 +167,7 @@ export default function ConversationalAssistant({
           {/* Context banner */}
           <div className="bg-emerald-50 border-b border-emerald-100 px-4 py-2 text-[11px] text-emerald-900 flex items-center justify-between">
             <span className="font-medium">
-              🎉 Upcoming: {upcomingEvent?.title || 'Ganesh Chaturthi Tomorrow'}
+              🎉 Upcoming: {upcomingEvent?.title || 'Navratri Festive Celebration'}
             </span>
             <span className="font-semibold text-emerald-700">Pre-event active</span>
           </div>

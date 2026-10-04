@@ -100,6 +100,10 @@ export default function Navbar({ onOpenAssistant, onOpenReminders }: NavbarProps
     { label: 'Analytics', href: '/analytics', icon: BarChart3 },
   ];
 
+  if (pathname === '/') {
+    return null;
+  }
+
   return (
     <header className="sticky top-4 z-40 px-4 sm:px-6 mb-6">
       <nav className="max-w-6xl mx-auto bg-white/95 backdrop-blur-md rounded-full px-5 py-2.5 shadow-sm border border-stone-200/70 flex items-center justify-between transition-all">

@@ -185,21 +185,21 @@ export function generateEventImpactReport(
  */
 export const DEFAULT_CALENDAR_EVENTS: CalendarEvent[] = [
   {
-    id: 'evt-ganesh-chaturthi',
-    title: 'Ganesh Chaturthi Festival',
+    id: 'evt-navratri-garba',
+    title: 'Navratri Festive Garba & Feasting',
     type: 'festival',
-    date: '2026-09-11', // Tomorrow relative to current context!
-    description: 'Festive community worship with traditional steamed modaks, feasts, and family gatherings.',
+    date: '2026-10-10',
+    description: 'Festive nine nights celebration with traditional Garba dance, fasting delicacies, and community feasts.',
     badgeColor: 'bg-amber-100 text-amber-800 border-amber-300',
-    preEventPlan: generatePreEventGuidance('festival', 'Ganesh Chaturthi Festival'),
-    duringEventGuidance: generateDuringEventGuidance('Ganesh Chaturthi Festival', 2100),
-    recoveryPlan: generateRecoveryPlan('Ganesh Chaturthi Festival', 450),
+    preEventPlan: generatePreEventGuidance('festival', 'Navratri Festive Garba'),
+    duringEventGuidance: generateDuringEventGuidance('Navratri Festive Garba', 2100),
+    recoveryPlan: generateRecoveryPlan('Navratri Festive Garba', 450),
   },
   {
     id: 'evt-weekend-dining',
     title: 'Weekend Social Dinner Outing',
     type: 'restaurant_outing',
-    date: '2026-09-13',
+    date: '2026-10-14',
     description: 'Dinner with friends at artisan Mediterranean bistro.',
     badgeColor: 'bg-teal-100 text-teal-800 border-teal-300',
     preEventPlan: generatePreEventGuidance('restaurant_outing', 'Mediterranean Bistro Dinner'),
@@ -210,7 +210,7 @@ export const DEFAULT_CALENDAR_EVENTS: CalendarEvent[] = [
     id: 'evt-diwali-grand',
     title: 'Diwali Celebration & Sweets Party',
     type: 'festival',
-    date: '2026-10-20',
+    date: '2026-10-28',
     description: 'Festival of lights with family dinners, festive sweets, dry fruits, and gifts.',
     badgeColor: 'bg-orange-100 text-orange-800 border-orange-300',
     preEventPlan: generatePreEventGuidance('festival', 'Diwali Celebration'),

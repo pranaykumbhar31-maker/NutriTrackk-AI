@@ -33,7 +33,7 @@ Current User Context:
 - Today's Consumed: ${todayConsumed.calories} kcal (Protein: ${todayConsumed.protein}g, Carbs: ${todayConsumed.carbs}g, Fats: ${todayConsumed.fats}g)
 - Energy Remaining: ${remainingCalories} kcal
 - Protein Remaining: ${Math.round(remainingProtein)}g
-- Upcoming Event/Festival: ${upcomingEventName || 'Ganesh Chaturthi (Tomorrow)'}
+- Upcoming Event/Festival: ${upcomingEventName || 'Navratri Festive Garba & Feasting'}
 
 CRITICAL ETHICAL & CLINICAL GUIDELINES:
 1. NEVER encourage starvation, extreme calorie restriction, skipping meals, purging, laxatives, or punitive excessive exercise.
@@ -86,8 +86,8 @@ CRITICAL ETHICAL & CLINICAL GUIDELINES:
       reply = `You're currently at **${todayConsumed.calories} kcal**, which is **${Math.round(
         (todayConsumed.calories / userProfile.dailyCalorieTarget) * 100
       )}%** of your **${userProfile.dailyCalorieTarget} kcal** daily allowance. You have **${remainingCalories} kcal** remaining to enjoy mindfully.`;
-    } else if (lower.includes('ganesh') || lower.includes('festival') || lower.includes('diwali') || lower.includes('event')) {
-      reply = `With **${upcomingEventName || 'Ganesh Chaturthi'}** coming up tomorrow, here is your NutriTrack festive strategy:\n\n- **Start with a protein & fiber breakfast**: Having scrambled eggs or Greek yogurt in the morning stabilizes blood sugar so you feel grounded.\n- **Savor your favorites mindfully**: Enjoy traditional steamed Ukadiche Modaks without guilt. Steamed modaks made with jaggery and coconut offer wholesome nourishment.\n- **Stay hydrated**: Keep a water bottle handy throughout family gatherings.\n\nFestivals are about community and joy — celebrate fully!`;
+    } else if (lower.includes('navratri') || lower.includes('festival') || lower.includes('diwali') || lower.includes('event')) {
+      reply = `With **${upcomingEventName || 'Navratri Festive Celebrations'}** approaching, here is your NutriTrack festive strategy:\n\n- **Start with a protein & fiber meal**: Having paneer, lentils, Greek yogurt, or eggs stabilizes blood sugar before evening celebrations.\n- **Savor your favorites mindfully**: Enjoy traditional sweets and festive dishes without guilt. Moderation and joy keep your wellness sustainable.\n- **Stay hydrated**: Drink plenty of water throughout gatherings and celebrations.\n\nFestivals are about community, vitality, and joy — celebrate fully!`;
     } else {
       reply = `Hello ${userProfile.name}! I'm tracking your day: you have **${remainingCalories} kcal** and **${Math.round(
         remainingProtein
