@@ -50,3 +50,19 @@
     stroke-dashoffset: 75;
   }
 }
+
+/* Remove Unicorn Studio watermark badge */
+a[href*="unicorn.studio"],
+img[src*="made_in_us"],
+img[alt*="unicorn.studio"],
+[data-us-project] > a,
+[data-us-project] a[target="_blank"] {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: absolute !important;
+  clip: rect(0, 0, 0, 0) !important;
+}

@@ -18,7 +18,60 @@ export default function LandingPage() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Initialize Unicorn Studio 3D Canvas
+    // 1. Intercept fetch to disable logo injection from the Unicorn Studio JSON config directly
+    const originalFetch = window.fetch;
+    window.fetch = async function (...args) {
+      const res = await originalFetch.apply(this, args);
+      const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request)?.url || '';
+      if (url.includes('unicornstudio') || url.includes('unicorn.studio')) {
+        try {
+          const clone = res.clone();
+          const data = await clone.json();
+          if (data && data.options) {
+            data.options.includeLogo = false;
+            data.options.freePlan = true;
+          }
+          return new Response(JSON.stringify(data), {
+            headers: res.headers,
+            status: res.status,
+            statusText: res.statusText,
+          });
+        } catch {
+          return res;
+        }
+      }
+      return res;
+    };
+
+    // 2. Active DOM watermark purging function
+    const purgeWatermark = () => {
+      const selectors = [
+        'a[href*="unicorn.studio"]',
+        'img[src*="made_in_us"]',
+        'img[alt*="unicorn.studio"]',
+        '[data-us-project] > a',
+        '[data-us-project] a[target="_blank"]',
+      ];
+      selectors.forEach((sel) => {
+        document.querySelectorAll(sel).forEach((el) => {
+          el.remove();
+        });
+      });
+    };
+
+    purgeWatermark();
+
+    // 3. MutationObserver to immediately remove badge as soon as it enters DOM
+    const observer = new MutationObserver(() => {
+      purgeWatermark();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Periodic sweep during canvas startup
+    const interval = setInterval(purgeWatermark, 100);
+    const timeout = setTimeout(() => clearInterval(interval), 5000);
+
+    // 4. Initialize Unicorn Studio 3D Canvas
     const initUnicorn = () => {
       if (window.UnicornStudio && typeof window.UnicornStudio.init === 'function') {
         try {
@@ -41,10 +94,40 @@ export default function LandingPage() {
       };
       (document.head || document.body).appendChild(script);
     }
+
+    return () => {
+      observer.disconnect();
+      clearInterval(interval);
+      clearTimeout(timeout);
+      window.fetch = originalFetch;
+    };
   }, []);
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-[#050807] flex items-center justify-center select-none">
+      {/* Fallback & inline CSS protection to completely hide any watermark elements */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            a[href*="unicorn.studio"],
+            img[src*="made_in_us"],
+            img[alt*="unicorn.studio"],
+            [data-us-project] > a,
+            [data-us-project] a[target="_blank"] {
+              display: none !important;
+              opacity: 0 !important;
+              pointer-events: none !important;
+              visibility: hidden !important;
+              width: 0 !important;
+              height: 0 !important;
+              position: absolute !important;
+              clip: rect(0, 0, 0, 0) !important;
+              z-index: -9999 !important;
+            }
+          `,
+        }}
+      />
+
       {/* 3D Scene Container rendered by Unicorn Studio */}
       <div
         ref={containerRef}
