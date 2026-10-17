@@ -8,6 +8,7 @@ import {
   ExerciseRecommendation,
   MealRecommendation,
   UserAccount,
+  GeneratedRoutinePlan,
 } from './types';
 import { DEFAULT_CALENDAR_EVENTS } from './festivalEngine';
 export { DEFAULT_CALENDAR_EVENTS };
@@ -16,6 +17,7 @@ import { VERIFIED_FOOD_DATABASE } from './foodDatabase';
 const STORAGE_KEYS = {
   ACCOUNTS: 'nutritrack_accounts_v2',
   ACTIVE_USER_ID: 'nutritrack_active_user_id_v2',
+  ROUTINE_PLAN: 'nutritrack_routine_plan_v2',
 };
 
 // Initial Profile matching reference screenshot (Maya)
@@ -765,4 +767,51 @@ export function saveStoredExercises(exercises: ExerciseRecommendation[]): void {
   updateActiveAccount((acc) => ({ ...acc, exercises }));
   notifyAllUpdated();
   syncActiveAccountToBackend();
+}
+
+export function getStoredRoutinePlan(): GeneratedRoutinePlan | null {
+  if (!isBrowser) return null;
+  try {
+    const account = getActiveAccount();
+    if (account?.routinePlan) return account.routinePlan;
+    const raw = localStorage.getItem(STORAGE_KEYS.ROUTINE_PLAN);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveStoredRoutinePlan(plan: GeneratedRoutinePlan): void {
+  if (!isBrowser) return;
+  try {
+    localStorage.setItem(STORAGE_KEYS.ROUTINE_PLAN, JSON.stringify(plan));
+    updateActiveAccount((acc) => ({
+      ...acc,
+      routinePlan: plan,
+      profile: {
+        ...acc.profile,
+        name: plan.userName || acc.profile.name,
+        age: plan.age || acc.profile.age,
+        gender: plan.gender || acc.profile.gender,
+        heightCm: plan.heightCm || acc.profile.heightCm,
+        weightKg: plan.currentWeightKg || acc.profile.weightKg,
+        targetWeightKg: plan.targetWeightKg || acc.profile.targetWeightKg,
+        goal: plan.goal || acc.profile.goal,
+        activityLevel: plan.activityLevel || acc.profile.activityLevel,
+        dailyCalorieTarget: plan.dailyCalorieTarget,
+        dailyProteinTarget: plan.dailyProteinTarget,
+        dailyCarbsTarget: plan.dailyCarbsTarget,
+        dailyFatsTarget: plan.dailyFatsTarget,
+      },
+      water: {
+        ...acc.water,
+        targetCups: plan.dailyWaterTargetCups,
+      },
+    }));
+    notifyAllUpdated();
+    syncActiveAccountToBackend();
+    window.dispatchEvent(new Event('nutritrack_routine_updated'));
+  } catch (e) {
+    console.warn('Failed to save routine plan:', e);
+  }
 }

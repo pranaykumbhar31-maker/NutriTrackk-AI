@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   User,
   Settings,
@@ -12,6 +13,7 @@ import {
   Target,
   Database,
   RefreshCw,
+  ClipboardList,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { getStoredProfile, saveStoredProfile } from '@/lib/storage';
@@ -80,17 +82,27 @@ export default function ProfilePage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
       {/* Title */}
-      <div>
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold uppercase tracking-wider mb-2">
-          <Settings className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Feature 14: User Profile & Clinical Personalization</span>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold uppercase tracking-wider mb-2">
+            <Settings className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Feature 14: User Profile & Clinical Personalization</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-stone-900 tracking-tight">
+            Personal Profile & Targets
+          </h1>
+          <p className="text-stone-600 text-sm sm:text-base mt-1">
+            NutriTrack AI calibrates your daily energy target, macronutrient distribution, and meal recommendations using the clinical Mifflin-St Jeor formula.
+          </p>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-stone-900 tracking-tight">
-          Personal Profile & Targets
-        </h1>
-        <p className="text-stone-600 text-sm sm:text-base mt-1">
-          NutriTrack AI calibrates your daily energy target, macronutrient distribution, and meal recommendations using the clinical Mifflin-St Jeor formula.
-        </p>
+
+        <Link
+          href="/routine"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-stone-900 hover:bg-stone-800 text-white font-semibold text-xs sm:text-sm shadow-sm transition-all hover:scale-105"
+        >
+          <ClipboardList className="w-4 h-4 text-emerald-400" />
+          <span>View Custom Routine Chart</span>
+        </Link>
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { usePathname } from 'next/navigation';
 import '@/styles/globals.css';
 import Navbar from '@/components/Navbar';
 import ConversationalAssistant from '@/components/ConversationalAssistant';
@@ -12,10 +11,8 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [isRemindersOpen, setIsRemindersOpen] = useState(false);
-  const isLandingPage = pathname === '/';
 
   return (
     <html lang="en">
@@ -36,20 +33,16 @@ export default function RootLayout({
 
         <main className="w-full">{children}</main>
 
-        {!isLandingPage && (
-          <>
-            <ConversationalAssistant
-              isOpen={isAssistantOpen}
-              onClose={() => setIsAssistantOpen(false)}
-              onToggle={() => setIsAssistantOpen((prev) => !prev)}
-            />
+        <ConversationalAssistant
+          isOpen={isAssistantOpen}
+          onClose={() => setIsAssistantOpen(false)}
+          onToggle={() => setIsAssistantOpen((prev) => !prev)}
+        />
 
-            <ReminderDrawer
-              isOpen={isRemindersOpen}
-              onClose={() => setIsRemindersOpen(false)}
-            />
-          </>
-        )}
+        <ReminderDrawer
+          isOpen={isRemindersOpen}
+          onClose={() => setIsRemindersOpen(false)}
+        />
       </body>
     </html>
   );

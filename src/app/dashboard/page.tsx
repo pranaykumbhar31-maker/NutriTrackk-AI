@@ -16,6 +16,7 @@ import {
   TrendingDown,
   Info,
   HeartPulse,
+  ClipboardList,
 } from 'lucide-react';
 import EnergyGauge from '@/components/EnergyGauge';
 import MacroSplitBar from '@/components/MacroSplitBar';
@@ -120,6 +121,36 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Personalized Goal & Routine Prompt Banner */}
+      <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-stone-900 rounded-3xl p-5 text-white shadow-sm border border-emerald-500/20 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-400/30 flex items-center justify-center text-lg shrink-0">
+            <ClipboardList className="w-5 h-5 text-emerald-400" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-sm text-white">
+                Personalized Goal & Daily Routine Chart
+              </span>
+              <span className="text-[10px] bg-emerald-400/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full uppercase border border-emerald-400/30">
+                Diet & Workout Routine
+              </span>
+            </div>
+            <p className="text-xs text-stone-300 mt-0.5">
+              Goal: {profile?.goal.replace('_', ' ')} • Target: {profile?.targetWeightKg || 56} kg. View your daily timed meals and 7-day workout routine.
+            </p>
+          </div>
+        </div>
+
+        <Link
+          href="/routine"
+          className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-bold text-xs sm:text-sm px-4 py-2 rounded-full shadow-sm transition-all hover:scale-105"
+        >
+          <span>View Routine Chart</span>
+          <ChevronRight className="w-4 h-4" />
+        </Link>
       </div>
 
       {/* Festival Alert Banner (Core Feature 9: Festival Intelligence) */}

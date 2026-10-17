@@ -200,6 +200,98 @@ export interface ChatMessage {
   actionSuggestions?: string[];
 }
 
+export interface RoutineExerciseItem {
+  id: string;
+  name: string;
+  sets: number;
+  repsOrDuration: string;
+  restSeconds: number;
+  targetMuscles: string;
+  proFormTip: string;
+}
+
+export interface DailyWorkoutRoutine {
+  dayNumber: number;
+  dayName: string;
+  focusTitle: string;
+  category: 'strength' | 'cardio' | 'hiit' | 'recovery' | 'hybrid' | 'rest';
+  durationMinutes: number;
+  estimatedBurnKcal: number;
+  intensity: 'Low' | 'Moderate' | 'High';
+  warmup: string[];
+  exercises: RoutineExerciseItem[];
+  cooldown: string[];
+}
+
+export interface RoutineMealItem {
+  id: string;
+  timeOfDay: string;
+  mealSlot: 'Early Morning' | 'Breakfast' | 'Mid-Morning Snack' | 'Lunch' | 'Evening Fuel' | 'Dinner' | 'Bedtime Routine';
+  title: string;
+  description: string;
+  portion: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  fiber: number;
+  benefits: string;
+  alternatives: string[];
+}
+
+export interface RoutineHabitChecklistItem {
+  id: string;
+  label: string;
+  timeHint: string;
+  category: 'hydration' | 'nutrition' | 'fitness' | 'recovery';
+  completed: boolean;
+}
+
+export interface GeneratedRoutinePlan {
+  id: string;
+  createdAt: string;
+  userName: string;
+  age: number;
+  gender: 'female' | 'male' | 'other';
+  currentWeightKg: number;
+  heightCm: number;
+  targetWeightKg: number;
+  goal: 'lose_fat' | 'build_muscle' | 'maintain' | 'improve_health';
+  pace: 'sustainable' | 'moderate' | 'accelerated';
+  activityLevel: 'sedentary' | 'light' | 'moderate' | 'very_active';
+  dietaryPreference: string;
+  allergies: string[];
+  workoutLocation: 'gym' | 'home_dumbbells' | 'bodyweight';
+
+  // Calculated Metrics & Targets
+  bmi: number;
+  bmiCategory: string;
+  bmr: number;
+  tdee: number;
+  dailyCalorieTarget: number;
+  dailyProteinTarget: number;
+  dailyCarbsTarget: number;
+  dailyFatsTarget: number;
+  dailyFiberTarget: number;
+  dailyWaterTargetLiters: number;
+  dailyWaterTargetCups: number;
+  projectedWeeksToGoal: number;
+  targetCompletionDate: string;
+
+  // Diet & Meal Routine
+  meals: RoutineMealItem[];
+  hydrationGuidelines: { time: string; amount: string; purpose: string }[];
+  dietaryGuidelines: string[];
+
+  // 7-Day Workout Routine
+  weeklySplit: DailyWorkoutRoutine[];
+  weeklyCardioTargetMinutes: number;
+  dailyStepsTarget: number;
+
+  // Daily Adherence Checklist
+  dailyChecklist: RoutineHabitChecklistItem[];
+}
+
 export interface UserAccount {
   id: string;
   email: string;
@@ -214,5 +306,6 @@ export interface UserAccount {
   events: CalendarEvent[];
   reminders: SmartReminder[];
   exercises: ExerciseRecommendation[];
+  routinePlan?: GeneratedRoutinePlan;
 }
 

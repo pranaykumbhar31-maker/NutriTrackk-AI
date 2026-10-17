@@ -33,7 +33,7 @@ const COMPOSITE_PRESET_ITEMS: Record<string, { title: string; inputs: { name: st
   'f-modak-steamed': {
     title: 'Festive Steamed Modak Thali',
     inputs: [
-      { name: 'Steamed Ukadiche Modak (Ganesh Chaturthi special)', quantityGrams: 100 },
+      { name: 'Steamed Ukadiche Modak (Traditional Festive Sweet)', quantityGrams: 100 },
       { name: 'Cardamom Saffron Rice Kheer', quantityGrams: 120 },
       { name: 'Besan Ladoo (Desi Ghee)', quantityGrams: 45 },
     ],

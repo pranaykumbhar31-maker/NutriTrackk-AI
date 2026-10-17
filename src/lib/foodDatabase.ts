@@ -443,7 +443,7 @@ export const VERIFIED_FOOD_DATABASE: FoodItem[] = [
   // --- Festive, Celebration & Occasion Foods (for Festival Mode) ---
   {
     id: 'f-modak-steamed',
-    name: 'Steamed Ukadiche Modak (Ganesh Chaturthi special)',
+    name: 'Steamed Ukadiche Modak (Traditional Festive Sweet)',
     category: 'festive',
     servingSize: 1,
     servingUnit: 'piece (50g)',

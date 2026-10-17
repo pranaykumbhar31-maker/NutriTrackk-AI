@@ -284,7 +284,8 @@ export default function ScannerPage() {
     reader.onload = () => {
       const base64 = reader.result as string;
       setSelectedImage(base64);
-      runAiScan(base64, null, fileName, dishQuery);
+      setDishQuery('');
+      runAiScan(base64, null, fileName, '');
     };
     reader.readAsDataURL(file);
     e.target.value = ''; // Reset file input so selecting the same or new file triggers onChange!
@@ -316,8 +317,9 @@ export default function ScannerPage() {
       setSelectedImage(dataUrl);
       setSelectedPresetId(null);
       setUploadedFileName('camera_snapshot.jpg');
+      setDishQuery('');
       stopCamera();
-      runAiScan(dataUrl, null, 'camera_snapshot.jpg', dishQuery);
+      runAiScan(dataUrl, null, 'camera_snapshot.jpg', '');
     }
   };
 

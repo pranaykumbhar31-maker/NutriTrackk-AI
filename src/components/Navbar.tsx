@@ -16,6 +16,7 @@ import {
   ChevronDown,
   Users,
   Settings,
+  ClipboardList,
 } from 'lucide-react';
 import {
   getStoredProfile,
@@ -93,16 +94,13 @@ export default function Navbar({ onOpenAssistant, onOpenReminders }: NavbarProps
   };
 
   const navLinks = [
+    { label: 'Routine & Goals', href: '/routine', icon: ClipboardList },
     { label: 'Scanner', href: '/scanner', icon: Camera },
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { label: 'Calendar & Festivals', href: '/calendar', icon: Calendar },
     { label: 'Recommendations', href: '/recommendations', icon: Utensils },
     { label: 'Analytics', href: '/analytics', icon: BarChart3 },
   ];
-
-  if (pathname === '/') {
-    return null;
-  }
 
   return (
     <header className="sticky top-4 z-40 px-4 sm:px-6 mb-6">
