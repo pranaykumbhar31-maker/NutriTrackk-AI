@@ -63,14 +63,28 @@ npm install
 ```
 
 ### 2. Configure Environment Variables
-Create `.env.local`:
+Create `.env.local` (or refer to `.env.example`):
 ```env
+# Standalone Python Food Scanner Service (Server-only; never use NEXT_PUBLIC_)
+SCANNER_URL=http://127.0.0.1:8001
+SCANNER_API_KEY=your_optional_secret_api_key
+
+# AI Assistant
 GROQ_API_KEY=your_groq_api_key_here
+
+# Database
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-### 3. Run Development Server
+### 3. Run Standalone Python Food Scanner
+```bash
+cd ../nutritrack-scanner
+pip install -r requirements.txt
+uvicorn scanner.api.app:app --port 8001
+```
+
+### 4. Run Development Server
 ```bash
 npm run dev
 ```
