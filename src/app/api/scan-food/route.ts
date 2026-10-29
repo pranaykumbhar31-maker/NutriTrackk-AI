@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { VERIFIED_FOOD_DATABASE } from '@/lib/foodDatabase';
 
 const SCANNER_URL = process.env.SCANNER_URL ?? 'http://127.0.0.1:8001';
 const SCANNER_API_KEY = process.env.SCANNER_API_KEY ?? ''; // server-only; never NEXT_PUBLIC_*
@@ -22,15 +23,19 @@ function dataUrlToBlob(dataUrl: string): Blob {
 const NUT = ['calories', 'protein', 'carbs', 'fats', 'fiber', 'sugar', 'sodium', 'potassium', 'calcium', 'iron'] as const;
 
 async function nutritionFor(foodId: string, grams?: number) {
-  const body = grams ? { items: [{ food_id: foodId, grams }] } : { items: [{ food_id: foodId, servings: 1 }] };
-  const r = await fetch(`${SCANNER_URL}/nutrition`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders() },
-    body: JSON.stringify(body),
-  });
-  if (!r.ok) return null;
-  const data = await r.json();
-  return data.items?.[0] ?? null;
+  try {
+    const body = grams ? { items: [{ food_id: foodId, grams }] } : { items: [{ food_id: foodId, servings: 1 }] };
+    const r = await fetch(`${SCANNER_URL}/nutrition`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getHeaders() },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) return null;
+    const data = await r.json();
+    return data.items?.[0] ?? null;
+  } catch {
+    return null;
+  }
 }
 
 function toLegacy(it: any, status: string, topCandidate?: any) {
@@ -78,15 +83,62 @@ export async function POST(req: NextRequest) {
     // Manual correction path: user picked a food (and maybe grams) -> recompute only.
     if (foodId) {
       const it = await nutritionFor(foodId, grams);
-      if (!it) {
-        return NextResponse.json({ success: false, error: 'Unknown food or invalid amount' }, { status: 422 });
+      if (it) {
+        return NextResponse.json({
+          ...toLegacy(it, 'accepted'),
+          scanStatus: 'accepted',
+          portionRequired: false,
+          needsConfirmation: false,
+        });
       }
-      return NextResponse.json({
-        ...toLegacy(it, 'accepted'),
-        scanStatus: 'accepted',
-        portionRequired: false,
-        needsConfirmation: false,
-      });
+
+      // Offline / cloud fallback for manual lookup
+      const local = VERIFIED_FOOD_DATABASE.find((f) => f.id === foodId);
+      if (local) {
+        const factor = (grams || local.servingSize) / (local.servingSize || 100);
+        const n: Record<string, number | undefined> = {
+          calories: Math.round(local.calories * factor),
+          protein: Math.round(local.protein * factor * 10) / 10,
+          carbs: Math.round(local.carbs * factor * 10) / 10,
+          fats: Math.round(local.fats * factor * 10) / 10,
+          fiber: local.fiber !== undefined ? Math.round(local.fiber * factor * 10) / 10 : undefined,
+          sodium: local.sodium !== undefined ? Math.round(local.sodium * factor) : undefined,
+        };
+        return NextResponse.json({
+          success: true,
+          isFood: true,
+          scanStatus: 'accepted',
+          plateTitle: local.name,
+          identifiedItems: [
+            {
+              id: `item-${local.id}`,
+              foodId: local.id,
+              name: local.name,
+              servingSize: grams || local.servingSize,
+              servingUnit: 'g',
+              quantity: 1,
+              caloriesPerUnit: n.calories ?? 0,
+              proteinPerUnit: n.protein ?? 0,
+              carbsPerUnit: n.carbs ?? 0,
+              fatsPerUnit: n.fats ?? 0,
+              fiberPerUnit: n.fiber,
+              sodiumPerUnit: n.sodium,
+              nutrition: n,
+              confidence: undefined,
+              healthTag: 'Reference value',
+            },
+          ],
+          totalEstimatedNutrition: n,
+          healthScore: undefined,
+          nutritionFlags: ['reference_database'],
+          aiObservation: `Reference values for ${grams || local.servingSize} g of ${local.name}. Adjust the portion to match what you ate.`,
+          provider: 'nutritrack_local_ref',
+          portionRequired: false,
+          needsConfirmation: false,
+        });
+      }
+
+      return NextResponse.json({ success: false, error: 'Unknown food or invalid amount' }, { status: 422 });
     }
 
     if (!imageBase64) {
